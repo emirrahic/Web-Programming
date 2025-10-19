@@ -1,0 +1,157 @@
+
+:root{
+  --bg:#ffffff;
+  --text:#111111;
+  --muted:#6b7280; 
+  --surface:#ffffff;
+  --border:#e5e7eb; 
+}
+html,
+body {
+  height: 100%;
+}
+body {
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+#app {
+  min-height: 60vh;
+}
+.navbar-brand {
+  font-weight: 700;
+}
+.card {
+  box-shadow: 0 .5rem 1rem rgba(0,0,0,.05);
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+hr {
+  border-color: var(--border);
+}
+
+
+#pageContent {
+  flex: 1 0 auto;
+}
+main {
+  flex: 1 0 auto;
+}
+footer {
+  flex-shrink: 0;
+}
+
+
+#spapp {
+  min-height: 60vh;
+}
+
+
+#spapp > section {
+  display: none;
+}
+#spapp > section:target {
+  display: block;
+}
+
+
+a {
+  color: #111111;
+}
+a:hover {
+  color: #000000;
+}
+
+
+.fade {
+  opacity: 0;
+  transition: opacity .2s ease-in;
+}
+.fade.show {
+  opacity: 1;
+}
+
+
+.hero {
+  min-height: 60vh;
+  background: linear-gradient(rgba(0,0,0,.35), rgba(0,0,0,.35)), url('../assets/img/image.jpg') center/cover no-repeat;
+}
+
+@media (max-width: 576px) {
+  .hero {
+    min-height: 45vh;
+  }
+}
+
+
+.table {
+  color: var(--text);
+  background: var(--surface);
+}
+.table thead th {
+  border-bottom-color: var(--border);
+}
+.table td,
+.table th {
+  border-color: var(--border);
+}
+
+
+.form-control,
+.form-select {
+  background: #ffffff;
+  border-color: var(--border);
+  color: var(--text);
+}
+.form-control::placeholder {
+  color: var(--muted);
+}
+.form-control:focus,
+.form-select:focus {
+  background: #ffffff;
+  color: var(--text);
+  border-color: #cbd5e1;
+  box-shadow: none;
+}
+
+
+.btn-primary {
+  background: #111111;
+  border-color: #111111;
+  color: #ffffff;
+}
+.btn-primary:hover {
+  background: #000000;
+  border-color: #000000;
+  color: #ffffff;
+}
+.btn-outline-primary {
+  border-color: #111111;
+  color: #111111;
+}
+.btn-outline-primary:hover {
+  background: #111111;
+  color: #ffffff;
+}
+
+
+.badge.bg-success {
+  background: #111111 !important;
+  color: #ffffff;
+}
+.badge.bg-danger {
+  background: #000000 !important;
+  color: #ffffff;
+}
+.badge.bg-secondary {
+  background: #f3f4f6 !important;
+  color: #111111;
+}
+
+.site-footer {
+  font-weight: 700;
+  font-size: 1.1rem;
+}
