@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../services/BookService.php';
+require_once __DIR__ . '/../middleware/JWTMiddleware.php';
 
 class BookRoutes {
     private $bookService;
@@ -71,7 +72,8 @@ class BookRoutes {
          * @OA\Post(
          *   path="/books",
          *   tags={"books"},
-         *   summary="Create a new book",
+         *   summary="Create a new book (librarian/admin only)",
+         *   security={{"bearerAuth": {}}},
          *   @OA\RequestBody(required=true, @OA\MediaType(mediaType="application/json",
          *     @OA\Schema(
          *       required={"title", "author_id", "isbn"},
@@ -88,10 +90,16 @@ class BookRoutes {
          *     )
          *   )),
          *   @OA\Response(response=201, description="Book created"),
-         *   @OA\Response(response=400, description="Validation error")
+         *   @OA\Response(response=400, description="Validation error"),
+         *   @OA\Response(response=401, description="Unauthorized"),
+         *   @OA\Response(response=403, description="Forbidden")
          * )
          */
         Flight::route('POST /books', function() {
+            if (!JWTMiddleware::requireLibrarian()) {
+                return;
+            }
+            
             try {
                 $data = Flight::request()->data->getData();
                 $book = $this->bookService->add($data);
@@ -112,7 +120,8 @@ class BookRoutes {
          * @OA\Put(
          *   path="/books/{id}",
          *   tags={"books"},
-         *   summary="Update a book",
+         *   summary="Update a book (librarian/admin only)",
+         *   security={{"bearerAuth": {}}},
          *   @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
          *   @OA\RequestBody(required=true, @OA\MediaType(mediaType="application/json",
          *     @OA\Schema(
@@ -129,10 +138,16 @@ class BookRoutes {
          *     )
          *   )),
          *   @OA\Response(response=200, description="Book updated"),
+         *   @OA\Response(response=401, description="Unauthorized"),
+         *   @OA\Response(response=403, description="Forbidden"),
          *   @OA\Response(response=404, description="Book not found")
          * )
          */
         Flight::route('PUT /books/@id', function($id) {
+            if (!JWTMiddleware::requireLibrarian()) {
+                return;
+            }
+            
             try {
                 $data = Flight::request()->data->getData();
                 $book = $this->bookService->update($id, $data);
@@ -153,13 +168,20 @@ class BookRoutes {
          * @OA\Delete(
          *   path="/books/{id}",
          *   tags={"books"},
-         *   summary="Delete a book",
+         *   summary="Delete a book (admin only)",
+         *   security={{"bearerAuth": {}}},
          *   @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
          *   @OA\Response(response=200, description="Book deleted"),
+         *   @OA\Response(response=401, description="Unauthorized"),
+         *   @OA\Response(response=403, description="Forbidden"),
          *   @OA\Response(response=404, description="Book not found")
          * )
          */
         Flight::route('DELETE /books/@id', function($id) {
+            if (!JWTMiddleware::requireAdmin()) {
+                return;
+            }
+            
             try {
                 $this->bookService->delete($id);
                 Flight::json([

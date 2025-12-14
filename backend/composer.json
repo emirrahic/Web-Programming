@@ -1,0 +1,19 @@
+{
+    "name": "emirrahic/library-management-system",
+    "description": "Library Management System with JWT Authentication",
+    "type": "project",
+    "require": {
+        "php": ">=7.4",
+        "mikecao/flight": "^3.0",
+        "vlucas/phpdotenv": "^5.5",
+        "firebase/php-jwt": "^6.0"
+    },
+    "require-dev": {
+        "zircote/swagger-php": "^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "": "backend/"
+        }
+    }
+}

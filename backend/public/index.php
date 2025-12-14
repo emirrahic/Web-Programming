@@ -2,45 +2,70 @@
 require_once __DIR__ . '/../vendor/autoload.php';
 
 // Load environment variables
-if (file_exists(__DIR__ . '/.env')) {
+if (file_exists(__DIR__ . '/../.env')) {
     $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
     $dotenv->load();
 }
 
-// Set error reporting
+
+require_once __DIR__ . '/../middleware/JWTMiddleware.php';
+
+
 if (getenv('APP_DEBUG') === 'true') {
     ini_set('display_errors', 1);
     ini_set('display_startup_errors', 1);
     error_reporting(E_ALL);
 }
 
-// Register Composer autoloader
+
 require_once __DIR__ . '/../vendor/autoload.php';
 
-// Initialize FlightPHP
+
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization');
+
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(204);
+    exit();
+}
+
+
 Flight::set('flight.views.path', __DIR__ . '/../frontend/views');
 
-// Database configuration
+
 $dbConfig = [
-    'host' => getenv('DB_HOST') ?: 'localhost',
-    'name' => getenv('DB_NAME') ?: 'library_db',
-    'user' => getenv('DB_USER') ?: 'root',
-    'pass' => getenv('DB_PASS') ?: '',
+    'host' => $_ENV['DB_HOST'] ?? 'localhost',
+    'name' => $_ENV['DB_NAME'] ?? 'projekat',
+    'user' => $_ENV['DB_USER'] ?? 'root',
+    'pass' => $_ENV['DB_PASS'] ?? '',
     'charset' => 'utf8mb4'
 ];
 
-// Initialize database connection
-$dsn = "mysql:host={$dbConfig['host']};dbname={$dbConfig['name']};charset={$dbConfig['charset']}";
-$pdo = new PDO($dsn, $dbConfig['user'], $dbConfig['pass'], [
-    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    PDO::ATTR_EMULATE_PREPARES => false,
-]);
 
-// Register database connection with Flight
-Flight::register('db', 'PDO', array($dsn, $dbConfig['user'], $dbConfig['pass']));
+try {
+    $dsn = "mysql:host={$dbConfig['host']};dbname={$dbConfig['name']};charset={$dbConfig['charset']}";
+    $pdo = new PDO($dsn, $dbConfig['user'], $dbConfig['pass'], [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES => false,
+    ]);
 
-// CORS headers
+    
+    Flight::register('db', 'PDO', array($dsn, $dbConfig['user'], $dbConfig['pass']));
+} catch (PDOException $e) {
+    
+    header('Content-Type: application/json');
+    echo json_encode([
+        'success' => false,
+        'error' => 'Database connection failed: ' . $e->getMessage()
+    ]);
+    exit();
+}
+
+// Remove old CORS handler since we handled it at the top
+/*
 Flight::before('start', function() {
     header('Access-Control-Allow-Origin: *');
     header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
@@ -51,13 +76,14 @@ Flight::before('start', function() {
         exit();
     }
 });
+*/
 
-// Error handling
+
 Flight::map('error', function(Throwable $error) {
-    // Log the error
+  
     error_log($error->getMessage());
     
-    // Return JSON response
+    
     $response = [
         'success' => false,
         'error' => 'An error occurred',
@@ -71,7 +97,7 @@ Flight::map('error', function(Throwable $error) {
     Flight::json($response, 500);
 });
 
-// 404 handler
+
 Flight::map('notFound', function() {
     Flight::json([
         'success' => false,
@@ -79,15 +105,15 @@ Flight::map('notFound', function() {
     ], 404);
 });
 
-// Include route files
-$routeFiles = glob(__DIR__ . '/../backend/routes/*.php');
+
+$routeFiles = glob(__DIR__ . '/../routes/*.php');
 foreach ($routeFiles as $file) {
     require_once $file;
     
-    // Extract class name from filename
+    
     $className = '\\' . basename($file, '.php');
     
-    // Create instance and register routes
+   
     if (class_exists($className)) {
         $routeInstance = new $className();
         if (method_exists($routeInstance, 'registerRoutes')) {
@@ -96,14 +122,14 @@ foreach ($routeFiles as $file) {
     }
 }
 
-// API Documentation Route
+
 Flight::route('GET /api-docs', function() {
     $openapi = \OpenApi\Generator::scan([__DIR__ . '/../backend/routes']);
     header('Content-Type: application/json');
     echo $openapi->toJson();
 });
 
-// Serve Swagger UI
+
 Flight::route('GET /docs', function() {
     $swaggerUiPath = __DIR__ . '/../vendor/swagger-api/swagger-ui/dist';
     if (is_dir($swaggerUiPath)) {
@@ -119,10 +145,10 @@ Flight::route('GET /docs', function() {
     }
 });
 
-// Root route - Serve the main SPA
+
 Flight::route('GET /', function() {
     Flight::render('index.html');
 });
 
-// Start the application
+
 Flight::start();
