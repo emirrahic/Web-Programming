@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../services/AuthorService.php';
+require_once __DIR__ . '/../middleware/JWTMiddleware.php';
 
 class AuthorRoutes {
     private $authorService;
@@ -85,7 +86,8 @@ class AuthorRoutes {
          * @OA\Post(
          *   path="/authors",
          *   tags={"authors"},
-         *   summary="Create a new author",
+         *   summary="Create a new author (librarian/admin only)",
+         *   security={{"bearerAuth": {}}},
          *   @OA\RequestBody(required=true, @OA\MediaType(mediaType="application/json",
          *     @OA\Schema(
          *       required={"name"},
@@ -94,10 +96,16 @@ class AuthorRoutes {
          *     )
          *   )),
          *   @OA\Response(response=201, description="Author created"),
-         *   @OA\Response(response=400, description="Validation error")
+         *   @OA\Response(response=400, description="Validation error"),
+         *   @OA\Response(response=401, description="Unauthorized"),
+         *   @OA\Response(response=403, description="Forbidden")
          * )
          */
         Flight::route('POST /authors', function() {
+            if (!JWTMiddleware::requireLibrarian()) {
+                return;
+            }
+            
             try {
                 $data = Flight::request()->data->getData();
                 $author = $this->authorService->add($data);
@@ -118,7 +126,8 @@ class AuthorRoutes {
          * @OA\Put(
          *   path="/authors/{id}",
          *   tags={"authors"},
-         *   summary="Update an author",
+         *   summary="Update an author (librarian/admin only)",
+         *   security={{"bearerAuth": {}}},
          *   @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
          *   @OA\RequestBody(required=true, @OA\MediaType(mediaType="application/json",
          *     @OA\Schema(
@@ -127,10 +136,16 @@ class AuthorRoutes {
          *     )
          *   )),
          *   @OA\Response(response=200, description="Author updated"),
+         *   @OA\Response(response=401, description="Unauthorized"),
+         *   @OA\Response(response=403, description="Forbidden"),
          *   @OA\Response(response=404, description="Author not found")
          * )
          */
         Flight::route('PUT /authors/@id', function($id) {
+            if (!JWTMiddleware::requireLibrarian()) {
+                return;
+            }
+            
             try {
                 $data = Flight::request()->data->getData();
                 $author = $this->authorService->update($id, $data);
@@ -151,13 +166,20 @@ class AuthorRoutes {
          * @OA\Delete(
          *   path="/authors/{id}",
          *   tags={"authors"},
-         *   summary="Delete an author",
+         *   summary="Delete an author (admin only)",
+         *   security={{"bearerAuth": {}}},
          *   @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
          *   @OA\Response(response=200, description="Author deleted"),
+         *   @OA\Response(response=401, description="Unauthorized"),
+         *   @OA\Response(response=403, description="Forbidden"),
          *   @OA\Response(response=404, description="Author not found")
          * )
          */
         Flight::route('DELETE /authors/@id', function($id) {
+            if (!JWTMiddleware::requireAdmin()) {
+                return;
+            }
+            
             try {
                 $this->authorService->delete($id);
                 Flight::json([

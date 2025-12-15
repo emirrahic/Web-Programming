@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../services/CategoryService.php';
+require_once __DIR__ . '/../middleware/JWTMiddleware.php';
 
 class CategoryRoutes {
     private $categoryService;
@@ -85,7 +86,8 @@ class CategoryRoutes {
          * @OA\Post(
          *   path="/categories",
          *   tags={"categories"},
-         *   summary="Create a new category",
+         *   summary="Create a new category (librarian/admin only)",
+         *   security={{"bearerAuth": {}}},
          *   @OA\RequestBody(required=true, @OA\MediaType(mediaType="application/json",
          *     @OA\Schema(
          *       required={"name"},
@@ -94,10 +96,16 @@ class CategoryRoutes {
          *     )
          *   )),
          *   @OA\Response(response=201, description="Category created"),
-         *   @OA\Response(response=400, description="Validation error")
+         *   @OA\Response(response=400, description="Validation error"),
+         *   @OA\Response(response=401, description="Unauthorized"),
+         *   @OA\Response(response=403, description="Forbidden")
          * )
          */
         Flight::route('POST /categories', function() {
+            if (!JWTMiddleware::requireLibrarian()) {
+                return;
+            }
+            
             try {
                 $data = Flight::request()->data->getData();
                 $category = $this->categoryService->add($data);
@@ -118,7 +126,8 @@ class CategoryRoutes {
          * @OA\Put(
          *   path="/categories/{id}",
          *   tags={"categories"},
-         *   summary="Update a category",
+         *   summary="Update a category (librarian/admin only)",
+         *   security={{"bearerAuth": {}}},
          *   @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
          *   @OA\RequestBody(required=true, @OA\MediaType(mediaType="application/json",
          *     @OA\Schema(
@@ -127,10 +136,16 @@ class CategoryRoutes {
          *     )
          *   )),
          *   @OA\Response(response=200, description="Category updated"),
+         *   @OA\Response(response=401, description="Unauthorized"),
+         *   @OA\Response(response=403, description="Forbidden"),
          *   @OA\Response(response=404, description="Category not found")
          * )
          */
         Flight::route('PUT /categories/@id', function($id) {
+            if (!JWTMiddleware::requireLibrarian()) {
+                return;
+            }
+            
             try {
                 $data = Flight::request()->data->getData();
                 $category = $this->categoryService->update($id, $data);
@@ -151,13 +166,20 @@ class CategoryRoutes {
          * @OA\Delete(
          *   path="/categories/{id}",
          *   tags={"categories"},
-         *   summary="Delete a category",
+         *   summary="Delete a category (admin only)",
+         *   security={{"bearerAuth": {}}},
          *   @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
          *   @OA\Response(response=200, description="Category deleted"),
+         *   @OA\Response(response=401, description="Unauthorized"),
+         *   @OA\Response(response=403, description="Forbidden"),
          *   @OA\Response(response=404, description="Category not found")
          * )
          */
         Flight::route('DELETE /categories/@id', function($id) {
+            if (!JWTMiddleware::requireAdmin()) {
+                return;
+            }
+            
             try {
                 $this->categoryService->delete($id);
                 Flight::json([

@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../services/UserService.php';
+require_once __DIR__ . '/../middleware/JWTMiddleware.php';
 
 class UserRoutes {
     private $userService;
@@ -14,21 +15,22 @@ class UserRoutes {
          *   path="/users",
          *   tags={"users"},
          *   summary="Get all users (admin only)",
-         *   security={{"api_key": {}}},
+         *   security={{"bearerAuth": {}}},
          *   @OA\Response(response=200, description="List of users"),
+         *   @OA\Response(response=401, description="Unauthorized"),
          *   @OA\Response(response=403, description="Forbidden")
          * )
          */
         Flight::route('GET /users', function() {
+            if (!JWTMiddleware::requireAdmin()) {
+                return;
+            }
+            
             try {
-                if (!isAdmin()) {
-                    throw new Exception('Access denied', 403);
-                }
-                
                 $users = $this->userService->getAll();
                 // Remove sensitive data
                 $users = array_map(function($user) {
-                    unset($user['password_hash']);
+                    unset($user['password']);
                     return $user;
                 }, $users);
                 
@@ -49,22 +51,29 @@ class UserRoutes {
          *   path="/users/{id}",
          *   tags={"users"},
          *   summary="Get user by ID",
-         *   security={{"api_key": {}}},
+         *   security={{"bearerAuth": {}}},
          *   @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
          *   @OA\Response(response=200, description="User found"),
+         *   @OA\Response(response=401, description="Unauthorized"),
          *   @OA\Response(response=403, description="Forbidden"),
          *   @OA\Response(response=404, description="User not found")
          * )
          */
         Flight::route('GET /users/@id', function($id) {
+            if (!JWTMiddleware::authenticate()) {
+                return;
+            }
+            
             try {
+                $currentUser = JWTMiddleware::getCurrentUser();
+                
                 // Only allow users to view their own profile, or admins to view any profile
-                if (!isAdmin() && $_SESSION['user']['id'] != $id) {
+                if (!JWTMiddleware::isAdmin() && $currentUser->id != $id) {
                     throw new Exception('Access denied', 403);
                 }
                 
                 $user = $this->userService->getById($id);
-                unset($user['password_hash']);
+                unset($user['password']);
                 
                 Flight::json([
                     'success' => true,
@@ -101,12 +110,16 @@ class UserRoutes {
             try {
                 $data = Flight::request()->data->getData();
                 $user = $this->userService->register($data);
-                unset($user['password_hash']);
+                unset($user['password']);
+                
+                // Generate JWT token for the new user
+                $token = JWTMiddleware::generateToken($user);
                 
                 Flight::json([
                     'success' => true,
                     'message' => 'User registered successfully',
-                    'data' => $user
+                    'data' => $user,
+                    'token' => $token
                 ], 201);
             } catch (Exception $e) {
                 Flight::json([
@@ -138,14 +151,16 @@ class UserRoutes {
                 $user = $this->userService->login($data['email'], $data['password']);
                 
                 if ($user) {
-                    // Set user session
-                    $_SESSION['user'] = $user;
-                    unset($user['password_hash']);
+                    unset($user['password']);
+                    
+                    // Generate JWT token
+                    $token = JWTMiddleware::generateToken($user);
                     
                     Flight::json([
                         'success' => true,
                         'message' => 'Login successful',
-                        'data' => $user
+                        'data' => $user,
+                        'token' => $token
                     ]);
                 } else {
                     throw new Exception('Invalid email or password', 401);
@@ -162,17 +177,50 @@ class UserRoutes {
          * @OA\Post(
          *   path="/users/logout",
          *   tags={"users"},
-         *   summary="User logout",
-         *   security={{"api_key": {}}},
+         *   summary="User logout (client-side token removal)",
+         *   security={{"bearerAuth": {}}},
          *   @OA\Response(response=200, description="Logout successful")
          * )
          */
         Flight::route('POST /users/logout', function() {
-            session_destroy();
+            // With JWT, logout is handled client-side by removing the token
+            // This endpoint is kept for compatibility
             Flight::json([
                 'success' => true,
-                'message' => 'Successfully logged out'
+                'message' => 'Successfully logged out. Please remove the token from client.'
             ]);
+        });
+
+        /**
+         * @OA\Get(
+         *   path="/users/me",
+         *   tags={"users"},
+         *   summary="Get current user profile",
+         *   security={{"bearerAuth": {}}},
+         *   @OA\Response(response=200, description="Current user data"),
+         *   @OA\Response(response=401, description="Unauthorized")
+         * )
+         */
+        Flight::route('GET /users/me', function() {
+            if (!JWTMiddleware::authenticate()) {
+                return;
+            }
+            
+            try {
+                $currentUser = JWTMiddleware::getCurrentUser();
+                $user = $this->userService->getById($currentUser->id);
+                unset($user['password']);
+                
+                Flight::json([
+                    'success' => true,
+                    'data' => $user
+                ], 200);
+            } catch (Exception $e) {
+                Flight::json([
+                    'success' => false,
+                    'error' => $e->getMessage()
+                ], $e->getCode() ?: 400);
+            }
         });
 
         /**
@@ -180,7 +228,7 @@ class UserRoutes {
          *   path="/users/{id}",
          *   tags={"users"},
          *   summary="Update user profile",
-         *   security={{"api_key": {}}},
+         *   security={{"bearerAuth": {}}},
          *   @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
          *   @OA\RequestBody(required=true, @OA\MediaType(mediaType="application/json",
          *     @OA\Schema(
@@ -194,25 +242,27 @@ class UserRoutes {
          *   )),
          *   @OA\Response(response=200, description="User updated"),
          *   @OA\Response(response=400, description="Validation error"),
+         *   @OA\Response(response=401, description="Unauthorized"),
          *   @OA\Response(response=403, description="Forbidden"),
          *   @OA\Response(response=404, description="User not found")
          * )
          */
         Flight::route('PUT /users/@id', function($id) {
+            if (!JWTMiddleware::authenticate()) {
+                return;
+            }
+            
             try {
+                $currentUser = JWTMiddleware::getCurrentUser();
+                
                 // Only allow users to update their own profile, or admins to update any profile
-                if (!isAdmin() && $_SESSION['user']['id'] != $id) {
+                if (!JWTMiddleware::isAdmin() && $currentUser->id != $id) {
                     throw new Exception('Access denied', 403);
                 }
                 
                 $data = Flight::request()->data->getData();
                 $user = $this->userService->update($id, $data);
-                unset($user['password_hash']);
-                
-                // Update session if current user updated their own profile
-                if ($_SESSION['user']['id'] == $id) {
-                    $_SESSION['user'] = array_merge($_SESSION['user'], $user);
-                }
+                unset($user['password']);
                 
                 Flight::json([
                     'success' => true,
@@ -232,21 +282,24 @@ class UserRoutes {
          *   path="/users/{id}",
          *   tags={"users"},
          *   summary="Delete a user (admin only)",
-         *   security={{"api_key": {}}},
+         *   security={{"bearerAuth": {}}},
          *   @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
          *   @OA\Response(response=200, description="User deleted"),
+         *   @OA\Response(response=401, description="Unauthorized"),
          *   @OA\Response(response=403, description="Forbidden"),
          *   @OA\Response(response=404, description="User not found")
          * )
          */
         Flight::route('DELETE /users/@id', function($id) {
+            if (!JWTMiddleware::requireAdmin()) {
+                return;
+            }
+            
             try {
-                if (!isAdmin()) {
-                    throw new Exception('Access denied', 403);
-                }
+                $currentUser = JWTMiddleware::getCurrentUser();
                 
                 // Prevent deleting own account
-                if ($_SESSION['user']['id'] == $id) {
+                if ($currentUser->id == $id) {
                     throw new Exception('Cannot delete your own account', 400);
                 }
                 
@@ -264,10 +317,5 @@ class UserRoutes {
             }
         });
     }
-}
-
-// Helper functions
-function isAdmin() {
-    return isset($_SESSION['user']) && $_SESSION['user']['role'] === 'admin';
 }
 ?>

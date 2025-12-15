@@ -2,31 +2,93 @@
   <div class="col-md-8 col-lg-6">
     <div class="card p-4">
       <h1 class="h4 mb-3">Register</h1>
-      <form>
+      <div id="register-error" class="alert alert-danger d-none"></div>
+      <div id="register-success" class="alert alert-success d-none"></div>
+      <form id="register-form">
         <div class="row g-3">
           <div class="col-md-6">
             <label class="form-label">First name</label>
-            <input class="form-control" type="text" />
+            <input id="first-name" class="form-control" type="text" required />
           </div>
           <div class="col-md-6">
             <label class="form-label">Last name</label>
-            <input class="form-control" type="text" />
+            <input id="last-name" class="form-control" type="text" required />
+          </div>
+          <div class="col-12">
+            <label class="form-label">Username</label>
+            <input id="username" class="form-control" type="text" required />
           </div>
           <div class="col-12">
             <label class="form-label">Email</label>
-            <input class="form-control" type="email" />
+            <input id="email" class="form-control" type="email" required />
           </div>
           <div class="col-md-6">
             <label class="form-label">Password</label>
-            <input class="form-control" type="password" />
+            <input id="password" class="form-control" type="password" required />
           </div>
           <div class="col-md-6">
             <label class="form-label">Confirm Password</label>
-            <input class="form-control" type="password" />
+            <input id="confirm-password" class="form-control" type="password" required />
           </div>
         </div>
-        <button class="btn btn-primary w-100 mt-3" type="button" onclick="location.hash='#login'">Create account</button>
+        <button class="btn btn-primary w-100 mt-3" type="submit">Create account</button>
       </form>
+      <p class="mt-3 mb-0">Already have an account? <a href="#login">Login</a></p>
     </div>
   </div>
 </section>
+
+<script>
+  $(document).ready(function () {
+    $('#register-form').on('submit', async function (e) {
+      e.preventDefault();
+
+      const firstName = $('#first-name').val();
+      const lastName = $('#last-name').val();
+      const username = $('#username').val();
+      const email = $('#email').val();
+      const password = $('#password').val();
+      const confirmPassword = $('#confirm-password').val();
+
+      // Hide previous messages
+      $('#register-error').addClass('d-none');
+      $('#register-success').addClass('d-none');
+
+      // Validate passwords match
+      if (password !== confirmPassword) {
+        $('#register-error').text('Passwords do not match').removeClass('d-none');
+        return;
+      }
+
+      // Show loading state
+      const submitBtn = $(this).find('button[type="submit"]');
+      const originalText = submitBtn.text();
+      submitBtn.prop('disabled', true).text('Creating account...');
+
+      try {
+        const result = await Auth.register({
+          first_name: firstName,
+          last_name: lastName,
+          username: username,
+          email: email,
+          password: password
+        });
+
+        if (result.success) {
+          // Show success message and redirect
+          $('#register-success').text('Account created successfully! Redirecting...').removeClass('d-none');
+          setTimeout(() => {
+            window.location.hash = '#dashboard';
+          }, 1500);
+        } else {
+          // Show error
+          $('#register-error').text(result.error).removeClass('d-none');
+        }
+      } catch (error) {
+        $('#register-error').text('An error occurred. Please try again.').removeClass('d-none');
+      } finally {
+        submitBtn.prop('disabled', false).text(originalText);
+      }
+    });
+  });
+</script>

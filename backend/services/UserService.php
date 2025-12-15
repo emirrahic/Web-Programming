@@ -8,20 +8,14 @@ class UserService extends BaseService {
     }
 
     protected function validate($user) {
-        if (empty($user['username'])) {
-            throw new Exception("Username is required");
-        }
-        if (strlen($user['username']) < 3 || strlen($user['username']) > 50) {
-            throw new Exception("Username must be between 3 and 50 characters");
+        if (empty($user['email'])) {
+            throw new Exception("Email is required");
         }
         if (!filter_var($user['email'], FILTER_VALIDATE_EMAIL)) {
             throw new Exception("Valid email is required");
         }
-        if (strlen($user['password']) < 8) {
+        if (isset($user['password']) && strlen($user['password']) < 8) {
             throw new Exception("Password must be at least 8 characters long");
-        }
-        if (!in_array(strtolower($user['role']), ['admin', 'librarian', 'member'])) {
-            throw new Exception("Invalid user role");
         }
     }
 
@@ -31,16 +25,39 @@ class UserService extends BaseService {
 
     public function login($email, $password) {
         $user = $this->getUserByEmail($email);
-        if ($user && password_verify($password, $user['password_hash'])) {
-            unset($user['password_hash']);
+        if ($user && password_verify($password, $user['password'])) {
+            unset($user['password']);
             return $user;
         }
         return null;
     }
 
     public function register($userData) {
-        $userData['password_hash'] = password_hash($userData['password'], PASSWORD_DEFAULT);
-        unset($userData['password']);
-        return $this->add($userData);
+        // Map frontend fields to database columns
+        $dbData = [
+            'email' => $userData['email'],
+            'password' => password_hash($userData['password'], PASSWORD_DEFAULT),
+            'role' => 'user' // Default to user
+        ];
+
+        // Combine names if present, otherwise use username or email part
+        if (isset($userData['first_name']) && isset($userData['last_name'])) {
+            $dbData['name'] = $userData['first_name'] . ' ' . $userData['last_name'];
+        } elseif (isset($userData['username'])) {
+            $dbData['name'] = $userData['username'];
+        } else {
+            $dbData['name'] = explode('@', $userData['email'])[0];
+        }
+
+        // Handle role if provided (admin can register other admins)
+        if (isset($userData['role']) && $userData['role'] === 'admin') {
+            $dbData['role'] = 'admin';
+        }
+
+        // Add user and get ID
+        $id = $this->add($dbData);
+        
+        // Return the full user object
+        return $this->getById($id);
     }
 }
