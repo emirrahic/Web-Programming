@@ -23,7 +23,7 @@ $(function () {
   setActive(location.hash);
 
 
-  // Logout handler
+
   $(document).on('click', '#logout-btn', function (e) {
     e.preventDefault();
     Auth.logout();

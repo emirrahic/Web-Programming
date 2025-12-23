@@ -27,10 +27,10 @@
       const email = $('#login-email').val();
       const password = $('#login-password').val();
 
-      // Hide previous errors
+      
       $('#login-error').addClass('d-none');
 
-      // Show loading state
+      
       const submitBtn = $(this).find('button[type="submit"]');
       const originalText = submitBtn.text();
       submitBtn.prop('disabled', true).text('Signing in...');
@@ -39,10 +39,10 @@
         const result = await Auth.login(email, password);
 
         if (result.success) {
-          // Redirect to dashboard
+          
           window.location.hash = '#dashboard';
         } else {
-          // Show error
+          
           $('#login-error').text(result.error).removeClass('d-none');
         }
       } catch (error) {

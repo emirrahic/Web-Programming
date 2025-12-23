@@ -13,19 +13,7 @@ class LoanRoutes {
     }
     
     public function registerRoutes() {
-        /**
-         * @OA\Get(
-         *   path="/loans",
-         *   tags={"loans"},
-         *   summary="Get all loans (librarian/admin only)",
-         *   security={{"bearerAuth": {}}},
-         *   @OA\Parameter(name="status", in="query", @OA\Schema(type="string", enum={"active", "returned", "overdue"})),
-         *   @OA\Parameter(name="user_id", in="query", @OA\Schema(type="integer")),
-         *   @OA\Response(response=200, description="List of loans"),
-         *   @OA\Response(response=401, description="Unauthorized"),
-         *   @OA\Response(response=403, description="Forbidden")
-         * )
-         */
+        
         Flight::route('GET /loans', function() {
             if (!JWTMiddleware::requireLibrarian()) {
                 return;
@@ -49,19 +37,7 @@ class LoanRoutes {
             }
         });
 
-        /**
-         * @OA\Get(
-         *   path="/loans/{id}",
-         *   tags={"loans"},
-         *   summary="Get loan by ID",
-         *   security={{"bearerAuth": {}}},
-         *   @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
-         *   @OA\Response(response=200, description="Loan found"),
-         *   @OA\Response(response=401, description="Unauthorized"),
-         *   @OA\Response(response=403, description="Forbidden"),
-         *   @OA\Response(response=404, description="Loan not found")
-         * )
-         */
+       
         Flight::route('GET /loans/@id', function($id) {
             if (!JWTMiddleware::authenticate()) {
                 return;
@@ -71,7 +47,7 @@ class LoanRoutes {
                 $currentUser = JWTMiddleware::getCurrentUser();
                 $loan = $this->loanService->getById($id);
                 
-                // Only allow the user who borrowed the book or a librarian to view the loan
+                
                 if (!JWTMiddleware::isLibrarian() && $currentUser->id != $loan['user_id']) {
                     throw new Exception('Access denied', 403);
                 }
@@ -88,19 +64,7 @@ class LoanRoutes {
             }
         });
 
-        /**
-         * @OA\Get(
-         *   path="/loans/user/{user_id}",
-         *   tags={"loans"},
-         *   summary="Get loans by user ID",
-         *   security={{"bearerAuth": {}}},
-         *   @OA\Parameter(name="user_id", in="path", required=true, @OA\Schema(type="integer")),
-         *   @OA\Parameter(name="status", in="query", @OA\Schema(type="string", enum={"active", "returned", "overdue"})),
-         *   @OA\Response(response=200, description="List of user's loans"),
-         *   @OA\Response(response=401, description="Unauthorized"),
-         *   @OA\Response(response=403, description="Forbidden")
-         * )
-         */
+      
         Flight::route('GET /loans/user/@user_id', function($userId) {
             if (!JWTMiddleware::authenticate()) {
                 return;
@@ -109,7 +73,7 @@ class LoanRoutes {
             try {
                 $currentUser = JWTMiddleware::getCurrentUser();
                 
-                // Users can only view their own loans unless they are librarians
+                
                 if (!JWTMiddleware::isLibrarian() && $currentUser->id != $userId) {
                     throw new Exception('Access denied', 403);
                 }
@@ -129,17 +93,7 @@ class LoanRoutes {
             }
         });
 
-        /**
-         * @OA\Get(
-         *   path="/loans/my-loans",
-         *   tags={"loans"},
-         *   summary="Get current user's loans",
-         *   security={{"bearerAuth": {}}},
-         *   @OA\Parameter(name="status", in="query", @OA\Schema(type="string", enum={"active", "returned", "overdue"})),
-         *   @OA\Response(response=200, description="List of user's loans"),
-         *   @OA\Response(response=401, description="Unauthorized")
-         * )
-         */
+       
         Flight::route('GET /loans/my-loans', function() {
             if (!JWTMiddleware::authenticate()) {
                 return;
@@ -162,26 +116,7 @@ class LoanRoutes {
             }
         });
 
-        /**
-         * @OA\Post(
-         *   path="/loans",
-         *   tags={"loans"},
-         *   summary="Create a new loan",
-         *   security={{"bearerAuth": {}}},
-         *   @OA\RequestBody(required=true, @OA\MediaType(mediaType="application/json",
-         *     @OA\Schema(
-         *       required={"book_id"},
-         *       @OA\Property(property="book_id", type="integer", example=1),
-         *       @OA\Property(property="user_id", type="integer", example=1, description="Required if admin/librarian, otherwise uses current user"),
-         *       @OA\Property(property="due_date", type="string", format="date", example="2023-12-31")
-         *     )
-         *   )),
-         *   @OA\Response(response=201, description="Loan created"),
-         *   @OA\Response(response=400, description="Validation error"),
-         *   @OA\Response(response=401, description="Unauthorized"),
-         *   @OA\Response(response=403, description="Forbidden")
-         * )
-         */
+     
         Flight::route('POST /loans', function() {
             if (!JWTMiddleware::authenticate()) {
                 return;
@@ -191,14 +126,13 @@ class LoanRoutes {
                 $currentUser = JWTMiddleware::getCurrentUser();
                 $data = Flight::request()->data->getData();
                 
-                // If not a librarian, can only create loans for themselves
+               
                 if (!JWTMiddleware::isLibrarian()) {
                     $data['user_id'] = $currentUser->id;
                 } elseif (!isset($data['user_id'])) {
                     throw new Exception('User ID is required', 400);
                 }
                 
-                // Check if the book is available
                 $book = $this->bookService->getById($data['book_id']);
                 if (!$book || $book['available_copies'] <= 0) {
                     throw new Exception('Book is not available for loan', 400);
@@ -219,20 +153,7 @@ class LoanRoutes {
             }
         });
 
-        /**
-         * @OA\Post(
-         *   path="/loans/{id}/return",
-         *   tags={"loans"},
-         *   summary="Return a book (librarian/admin only)",
-         *   security={{"bearerAuth": {}}},
-         *   @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
-         *   @OA\Response(response=200, description="Book returned successfully"),
-         *   @OA\Response(response=400, description="Validation error"),
-         *   @OA\Response(response=401, description="Unauthorized"),
-         *   @OA\Response(response=403, description="Forbidden"),
-         *   @OA\Response(response=404, description="Loan not found")
-         * )
-         */
+     
         Flight::route('POST /loans/@id/return', function($id) {
             if (!JWTMiddleware::requireLibrarian()) {
                 return;
@@ -254,17 +175,7 @@ class LoanRoutes {
             }
         });
 
-        /**
-         * @OA\Get(
-         *   path="/loans/overdue",
-         *   tags={"loans"},
-         *   summary="Get all overdue loans (librarian/admin only)",
-         *   security={{"bearerAuth": {}}},
-         *   @OA\Response(response=200, description="List of overdue loans"),
-         *   @OA\Response(response=401, description="Unauthorized"),
-         *   @OA\Response(response=403, description="Forbidden")
-         * )
-         */
+       
         Flight::route('GET /loans/overdue', function() {
             if (!JWTMiddleware::requireLibrarian()) {
                 return;
@@ -285,21 +196,7 @@ class LoanRoutes {
             }
         });
 
-        /**
-         * @OA\Put(
-         *   path="/loans/{id}/extend",
-         *   tags={"loans"},
-         *   summary="Extend loan due date",
-         *   security={{"bearerAuth": {}}},
-         *   @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
-         *   @OA\Parameter(name="days", in="query", @OA\Schema(type="integer", default=14, description="Number of days to extend the loan")),
-         *   @OA\Response(response=200, description="Loan extended successfully"),
-         *   @OA\Response(response=400, description="Validation error"),
-         *   @OA\Response(response=401, description="Unauthorized"),
-         *   @OA\Response(response=403, description="Forbidden"),
-         *   @OA\Response(response=404, description="Loan not found")
-         * )
-         */
+       
         Flight::route('PUT /loans/@id/extend', function($id) {
             if (!JWTMiddleware::authenticate()) {
                 return;
@@ -309,10 +206,10 @@ class LoanRoutes {
                 $currentUser = JWTMiddleware::getCurrentUser();
                 $days = (int)(Flight::request()->query['days'] ?? 14);
                 
-                // Get the loan to check permissions
+                
                 $loan = $this->loanService->getById($id);
                 
-                // Only the borrower or a librarian can extend the loan
+                
                 if (!JWTMiddleware::isLibrarian() && $currentUser->id != $loan['user_id']) {
                     throw new Exception('Access denied', 403);
                 }

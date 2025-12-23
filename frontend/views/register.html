@@ -50,17 +50,17 @@
       const password = $('#password').val();
       const confirmPassword = $('#confirm-password').val();
 
-      // Hide previous messages
+      
       $('#register-error').addClass('d-none');
       $('#register-success').addClass('d-none');
 
-      // Validate passwords match
+     
       if (password !== confirmPassword) {
         $('#register-error').text('Passwords do not match').removeClass('d-none');
         return;
       }
 
-      // Show loading state
+      
       const submitBtn = $(this).find('button[type="submit"]');
       const originalText = submitBtn.text();
       submitBtn.prop('disabled', true).text('Creating account...');
@@ -75,13 +75,13 @@
         });
 
         if (result.success) {
-          // Show success message and redirect
+          
           $('#register-success').text('Account created successfully! Redirecting...').removeClass('d-none');
           setTimeout(() => {
             window.location.hash = '#dashboard';
           }, 1500);
         } else {
-          // Show error
+          
           $('#register-error').text(result.error).removeClass('d-none');
         }
       } catch (error) {

@@ -1,73 +1,44 @@
-/**
- * JWT Authentication Helper
- */
-const Auth = {
-    // API base URL
-    API_BASE: 'http://localhost/WebProgrammingProject/backend/public',
 
-    /**
-     * Store JWT token in localStorage
-     */
+const Auth = {
+
+    API_BASE: './backend',
+
     setToken(token) {
         localStorage.setItem('jwt_token', token);
     },
 
-    /**
-     * Get JWT token from localStorage
-     */
     getToken() {
         return localStorage.getItem('jwt_token');
     },
 
-    /**
-     * Remove JWT token from localStorage
-     */
     removeToken() {
         localStorage.removeItem('jwt_token');
         localStorage.removeItem('user_data');
     },
 
-    /**
-     * Store user data in localStorage
-     */
     setUser(userData) {
         localStorage.setItem('user_data', JSON.stringify(userData));
     },
 
-    /**
-     * Get user data from localStorage
-     */
     getUser() {
         const userData = localStorage.getItem('user_data');
         return userData ? JSON.parse(userData) : null;
     },
 
-    /**
-     * Check if user is authenticated
-     */
     isAuthenticated() {
         return !!this.getToken();
     },
 
-    /**
-     * Check if user is admin
-     */
     isAdmin() {
         const user = this.getUser();
         return user && user.role === 'admin';
     },
 
-    /**
-     * Check if user is librarian or admin
-     */
     isLibrarian() {
         const user = this.getUser();
         return user && (user.role === 'admin' || user.role === 'librarian');
     },
 
-    /**
-     * Login user
-     */
     async login(email, password) {
         try {
             const response = await fetch(`${this.API_BASE}/users/login`, {
@@ -78,7 +49,6 @@ const Auth = {
                 body: JSON.stringify({ email, password })
             });
 
-            // Check if response is JSON
             const contentType = response.headers.get('content-type');
             if (!contentType || !contentType.includes('application/json')) {
                 const text = await response.text();
@@ -91,6 +61,7 @@ const Auth = {
             if (data.success && data.token) {
                 this.setToken(data.token);
                 this.setUser(data.data);
+                this.updateUI(); // Ensure UI updates immediately
                 return { success: true, user: data.data };
             } else {
                 return { success: false, error: data.error || 'Login failed' };
@@ -101,9 +72,6 @@ const Auth = {
         }
     },
 
-    /**
-     * Register new user
-     */
     async register(userData) {
         try {
             const response = await fetch(`${this.API_BASE}/users/register`, {
@@ -114,7 +82,6 @@ const Auth = {
                 body: JSON.stringify(userData)
             });
 
-            // Check if response is JSON
             const contentType = response.headers.get('content-type');
             if (!contentType || !contentType.includes('application/json')) {
                 const text = await response.text();
@@ -127,6 +94,7 @@ const Auth = {
             if (data.success && data.token) {
                 this.setToken(data.token);
                 this.setUser(data.data);
+                this.updateUI(); // Ensure UI updates immediately
                 return { success: true, user: data.data };
             } else {
                 return { success: false, error: data.error || 'Registration failed' };
@@ -137,9 +105,6 @@ const Auth = {
         }
     },
 
-    /**
-     * Logout user
-     */
     async logout() {
         try {
             const token = this.getToken();
@@ -156,12 +121,10 @@ const Auth = {
         } finally {
             this.removeToken();
             window.location.hash = '#home';
+            this.updateUI(); // Update UI after logout
         }
     },
 
-    /**
-     * Make authenticated API request
-     */
     async apiRequest(endpoint, options = {}) {
         const token = this.getToken();
 
@@ -182,10 +145,10 @@ const Auth = {
 
             const data = await response.json();
 
-            // If unauthorized, redirect to login
             if (response.status === 401) {
                 this.removeToken();
                 window.location.hash = '#login';
+                this.updateUI();
                 return { success: false, error: 'Unauthorized' };
             }
 
@@ -196,33 +159,27 @@ const Auth = {
         }
     },
 
-    /**
-     * Update UI based on authentication status
-     */
     updateUI() {
         const isAuth = this.isAuthenticated();
         const user = this.getUser();
+        console.log('UpdateUI called. Authenticated:', isAuth, 'User:', user);
 
-        // Show/hide menu items based on authentication
         if (isAuth) {
             $('.auth-required').show();
             $('.guest-only').hide();
 
-            // Show admin-only items
             if (this.isAdmin()) {
                 $('.admin-only').show();
             } else {
                 $('.admin-only').hide();
             }
 
-            // Show librarian items
             if (this.isLibrarian()) {
                 $('.librarian-only').show();
             } else {
                 $('.librarian-only').hide();
             }
 
-            // Update user info in navbar
             if (user) {
                 $('#user-name').text(user.username || user.email);
             }
@@ -235,7 +192,7 @@ const Auth = {
     }
 };
 
-// Update UI on page load and hash change
+
 $(document).ready(function () {
     Auth.updateUI();
 });

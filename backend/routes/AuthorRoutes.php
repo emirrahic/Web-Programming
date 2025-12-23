@@ -10,14 +10,7 @@ class AuthorRoutes {
     }
     
     public function registerRoutes() {
-        /**
-         * @OA\Get(
-         *   path="/authors",
-         *   tags={"authors"},
-         *   summary="Get all authors",
-         *   @OA\Response(response=200, description="List of authors")
-         * )
-         */
+      
         Flight::route('GET /authors', function() {
             try {
                 $authors = $this->authorService->getAll();
@@ -33,16 +26,7 @@ class AuthorRoutes {
             }
         });
 
-        /**
-         * @OA\Get(
-         *   path="/authors/{id}",
-         *   tags={"authors"},
-         *   summary="Get author by ID",
-         *   @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
-         *   @OA\Response(response=200, description="Author found"),
-         *   @OA\Response(response=404, description="Author not found")
-         * )
-         */
+       
         Flight::route('GET /authors/@id', function($id) {
             try {
                 $author = $this->authorService->getById($id);
@@ -58,15 +42,7 @@ class AuthorRoutes {
             }
         });
 
-        /**
-         * @OA\Get(
-         *   path="/authors/{id}/books",
-         *   tags={"authors"},
-         *   summary="Get books by author",
-         *   @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
-         *   @OA\Response(response=200, description="List of books by author")
-         * )
-         */
+        
         Flight::route('GET /authors/@id/books', function($id) {
             try {
                 $books = $this->authorService->getBooksByAuthor($id);
@@ -82,25 +58,7 @@ class AuthorRoutes {
             }
         });
 
-        /**
-         * @OA\Post(
-         *   path="/authors",
-         *   tags={"authors"},
-         *   summary="Create a new author (librarian/admin only)",
-         *   security={{"bearerAuth": {}}},
-         *   @OA\RequestBody(required=true, @OA\MediaType(mediaType="application/json",
-         *     @OA\Schema(
-         *       required={"name"},
-         *       @OA\Property(property="name", type="string", example="J.K. Rowling"),
-         *       @OA\Property(property="biography", type="string", example="British author best known for the Harry Potter series.")
-         *     )
-         *   )),
-         *   @OA\Response(response=201, description="Author created"),
-         *   @OA\Response(response=400, description="Validation error"),
-         *   @OA\Response(response=401, description="Unauthorized"),
-         *   @OA\Response(response=403, description="Forbidden")
-         * )
-         */
+       
         Flight::route('POST /authors', function() {
             if (!JWTMiddleware::requireLibrarian()) {
                 return;
@@ -122,25 +80,6 @@ class AuthorRoutes {
             }
         });
 
-        /**
-         * @OA\Put(
-         *   path="/authors/{id}",
-         *   tags={"authors"},
-         *   summary="Update an author (librarian/admin only)",
-         *   security={{"bearerAuth": {}}},
-         *   @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
-         *   @OA\RequestBody(required=true, @OA\MediaType(mediaType="application/json",
-         *     @OA\Schema(
-         *       @OA\Property(property="name", type="string", example="Updated Author Name"),
-         *       @OA\Property(property="biography", type="string")
-         *     )
-         *   )),
-         *   @OA\Response(response=200, description="Author updated"),
-         *   @OA\Response(response=401, description="Unauthorized"),
-         *   @OA\Response(response=403, description="Forbidden"),
-         *   @OA\Response(response=404, description="Author not found")
-         * )
-         */
         Flight::route('PUT /authors/@id', function($id) {
             if (!JWTMiddleware::requireLibrarian()) {
                 return;
@@ -162,19 +101,7 @@ class AuthorRoutes {
             }
         });
 
-        /**
-         * @OA\Delete(
-         *   path="/authors/{id}",
-         *   tags={"authors"},
-         *   summary="Delete an author (admin only)",
-         *   security={{"bearerAuth": {}}},
-         *   @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
-         *   @OA\Response(response=200, description="Author deleted"),
-         *   @OA\Response(response=401, description="Unauthorized"),
-         *   @OA\Response(response=403, description="Forbidden"),
-         *   @OA\Response(response=404, description="Author not found")
-         * )
-         */
+      
         Flight::route('DELETE /authors/@id', function($id) {
             if (!JWTMiddleware::requireAdmin()) {
                 return;

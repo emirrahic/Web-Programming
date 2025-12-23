@@ -1,13 +1,3 @@
-/**
- * Example: How to use Auth helper in your views
- * 
- * This file demonstrates how to integrate JWT authentication
- * into your frontend views
- */
-
-// ============================================
-// Example 1: Check if user is authenticated
-// ============================================
 
 if (Auth.isAuthenticated()) {
     console.log('User is logged in');
@@ -19,9 +9,7 @@ if (Auth.isAuthenticated()) {
     window.location.hash = '#login';
 }
 
-// ============================================
-// Example 2: Make authenticated API request
-// ============================================
+
 
 async function loadBooks() {
     const result = await Auth.apiRequest('/books', {
@@ -30,15 +18,13 @@ async function loadBooks() {
 
     if (result.success) {
         console.log('Books:', result.data);
-        // Display books in UI
+
     } else {
         console.error('Error:', result.error);
     }
 }
 
-// ============================================
-// Example 3: Create a new book (librarian only)
-// ============================================
+
 
 async function createBook(bookData) {
     if (!Auth.isLibrarian()) {
@@ -60,18 +46,7 @@ async function createBook(bookData) {
     }
 }
 
-// Usage:
-// createBook({
-//     title: 'New Book',
-//     author_id: 1,
-//     isbn: '1234567890123',
-//     total_copies: 5,
-//     available_copies: 5
-// });
 
-// ============================================
-// Example 4: Borrow a book
-// ============================================
 
 async function borrowBook(bookId) {
     if (!Auth.isAuthenticated()) {
@@ -97,9 +72,7 @@ async function borrowBook(bookId) {
     }
 }
 
-// ============================================
-// Example 5: Load user's loans
-// ============================================
+
 
 async function loadMyLoans() {
     const result = await Auth.apiRequest('/loans/my-loans', {
@@ -137,9 +110,7 @@ function displayLoans(loans) {
     });
 }
 
-// ============================================
-// Example 6: Update user profile
-// ============================================
+
 
 async function updateProfile(userData) {
     const user = Auth.getUser();
@@ -155,7 +126,7 @@ async function updateProfile(userData) {
     });
 
     if (result.success) {
-        // Update stored user data
+
         Auth.setUser(result.data);
         alert('Profile updated successfully!');
         return result.data;
@@ -165,16 +136,7 @@ async function updateProfile(userData) {
     }
 }
 
-// Usage:
-// updateProfile({
-//     first_name: 'John',
-//     last_name: 'Doe',
-//     email: 'john.doe@example.com'
-// });
 
-// ============================================
-// Example 7: Admin - Get all users
-// ============================================
 
 async function loadAllUsers() {
     if (!Auth.isAdmin()) {
@@ -212,9 +174,7 @@ function displayUsers(users) {
     });
 }
 
-// ============================================
-// Example 8: Admin - Delete user
-// ============================================
+
 
 async function deleteUser(userId) {
     if (!Auth.isAdmin()) {
@@ -232,18 +192,16 @@ async function deleteUser(userId) {
 
     if (result.success) {
         alert('User deleted successfully!');
-        loadAllUsers(); // Reload the list
+        loadAllUsers();
     } else {
         alert('Error: ' + result.error);
     }
 }
 
-// ============================================
-// Example 9: Show/hide elements based on role
-// ============================================
+
 
 function updateUIBasedOnRole() {
-    // Hide all role-specific elements first
+
     $('.member-only, .librarian-only, .admin-only').hide();
 
     if (Auth.isAuthenticated()) {
@@ -259,14 +217,12 @@ function updateUIBasedOnRole() {
     }
 }
 
-// Call this when page loads
+
 $(document).ready(function () {
     updateUIBasedOnRole();
 });
 
-// ============================================
-// Example 10: Search books with filters
-// ============================================
+
 
 async function searchBooks(searchTerm, categoryId = null) {
     let endpoint = `/books?search=${encodeURIComponent(searchTerm)}`;
@@ -323,12 +279,7 @@ function displayBooks(books) {
     });
 }
 
-// ============================================
-// Example 11: Handle token expiration
-// ============================================
 
-// The Auth.apiRequest() automatically handles 401 responses
-// and redirects to login, but you can also manually check:
 
 function checkTokenExpiration() {
     const token = Auth.getToken();
@@ -338,9 +289,9 @@ function checkTokenExpiration() {
     }
 
     try {
-        // Decode JWT token (simple base64 decode, not validation)
+
         const payload = JSON.parse(atob(token.split('.')[1]));
-        const expirationTime = payload.exp * 1000; // Convert to milliseconds
+        const expirationTime = payload.exp * 1000;
 
         if (Date.now() >= expirationTime) {
             console.log('Token has expired');
@@ -356,29 +307,27 @@ function checkTokenExpiration() {
     }
 }
 
-// ============================================
-// Example 12: Complete page initialization
-// ============================================
+
 
 $(document).ready(function () {
-    // Check authentication status
+
     if (Auth.isAuthenticated()) {
-        // Load user-specific data
+
         loadMyLoans();
 
-        // Update UI
+
         const user = Auth.getUser();
         $('#user-name').text(user.username);
         $('#user-email').text(user.email);
         $('#user-role').text(user.role);
     } else {
-        // Redirect to login if on protected page
+
         const protectedPages = ['#dashboard', '#profile', '#loans'];
         if (protectedPages.includes(window.location.hash)) {
             window.location.hash = '#login';
         }
     }
 
-    // Update UI based on role
+
     Auth.updateUI();
 });

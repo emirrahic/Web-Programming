@@ -10,18 +10,7 @@ class BookRoutes {
     }
     
     public function registerRoutes() {
-        /**
-         * @OA\Get(
-         *   path="/books",
-         *   tags={"books"},
-         *   summary="Get all books",
-         *   @OA\Parameter(name="search", in="query", @OA\Schema(type="string")),
-         *   @OA\Parameter(name="category_id", in="query", @OA\Schema(type="integer")),
-         *   @OA\Parameter(name="page", in="query", @OA\Schema(type="integer", default=1)),
-         *   @OA\Parameter(name="limit", in="query", @OA\Schema(type="integer", default=10)),
-         *   @OA\Response(response=200, description="List of books")
-         * )
-         */
+        
         Flight::route('GET /books', function() {
             try {
                 $search = Flight::request()->query['search'] ?? '';
@@ -43,16 +32,7 @@ class BookRoutes {
             }
         });
 
-        /**
-         * @OA\Get(
-         *   path="/books/{id}",
-         *   tags={"books"},
-         *   summary="Get book by ID",
-         *   @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
-         *   @OA\Response(response=200, description="Book found"),
-         *   @OA\Response(response=404, description="Book not found")
-         * )
-         */
+       
         Flight::route('GET /books/@id', function($id) {
             try {
                 $book = $this->bookService->getById($id);
@@ -68,33 +48,7 @@ class BookRoutes {
             }
         });
 
-        /**
-         * @OA\Post(
-         *   path="/books",
-         *   tags={"books"},
-         *   summary="Create a new book (librarian/admin only)",
-         *   security={{"bearerAuth": {}}},
-         *   @OA\RequestBody(required=true, @OA\MediaType(mediaType="application/json",
-         *     @OA\Schema(
-         *       required={"title", "author_id", "isbn"},
-         *       @OA\Property(property="title", type="string", example="Sample Book"),
-         *       @OA\Property(property="author_id", type="integer", example=1),
-         *       @OA\Property(property="isbn", type="string", example="1234567890123"),
-         *       @OA\Property(property="description", type="string"),
-         *       @OA\Property(property="publication_year", type="integer", example=2023),
-         *       @OA\Property(property="publisher", type="string"),
-         *       @OA\Property(property="pages", type="integer"),
-         *       @OA\Property(property="language", type="string"),
-         *       @OA\Property(property="total_copies", type="integer", example=1),
-         *       @OA\Property(property="available_copies", type="integer", example=1)
-         *     )
-         *   )),
-         *   @OA\Response(response=201, description="Book created"),
-         *   @OA\Response(response=400, description="Validation error"),
-         *   @OA\Response(response=401, description="Unauthorized"),
-         *   @OA\Response(response=403, description="Forbidden")
-         * )
-         */
+        
         Flight::route('POST /books', function() {
             if (!JWTMiddleware::requireLibrarian()) {
                 return;
@@ -116,33 +70,7 @@ class BookRoutes {
             }
         });
 
-        /**
-         * @OA\Put(
-         *   path="/books/{id}",
-         *   tags={"books"},
-         *   summary="Update a book (librarian/admin only)",
-         *   security={{"bearerAuth": {}}},
-         *   @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
-         *   @OA\RequestBody(required=true, @OA\MediaType(mediaType="application/json",
-         *     @OA\Schema(
-         *       @OA\Property(property="title", type="string"),
-         *       @OA\Property(property="author_id", type="integer"),
-         *       @OA\Property(property="isbn", type="string"),
-         *       @OA\Property(property="description", type="string"),
-         *       @OA\Property(property="publication_year", type="integer"),
-         *       @OA\Property(property="publisher", type="string"),
-         *       @OA\Property(property="pages", type="integer"),
-         *       @OA\Property(property="language", type="string"),
-         *       @OA\Property(property="total_copies", type="integer"),
-         *       @OA\Property(property="available_copies", type="integer")
-         *     )
-         *   )),
-         *   @OA\Response(response=200, description="Book updated"),
-         *   @OA\Response(response=401, description="Unauthorized"),
-         *   @OA\Response(response=403, description="Forbidden"),
-         *   @OA\Response(response=404, description="Book not found")
-         * )
-         */
+      
         Flight::route('PUT /books/@id', function($id) {
             if (!JWTMiddleware::requireLibrarian()) {
                 return;
@@ -164,19 +92,7 @@ class BookRoutes {
             }
         });
 
-        /**
-         * @OA\Delete(
-         *   path="/books/{id}",
-         *   tags={"books"},
-         *   summary="Delete a book (admin only)",
-         *   security={{"bearerAuth": {}}},
-         *   @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
-         *   @OA\Response(response=200, description="Book deleted"),
-         *   @OA\Response(response=401, description="Unauthorized"),
-         *   @OA\Response(response=403, description="Forbidden"),
-         *   @OA\Response(response=404, description="Book not found")
-         * )
-         */
+      
         Flight::route('DELETE /books/@id', function($id) {
             if (!JWTMiddleware::requireAdmin()) {
                 return;
@@ -196,15 +112,7 @@ class BookRoutes {
             }
         });
 
-        /**
-         * @OA\Get(
-         *   path="/books/search",
-         *   tags={"books"},
-         *   summary="Search books",
-         *   @OA\Parameter(name="q", in="query", required=true, @OA\Schema(type="string")),
-         *   @OA\Response(response=200, description="List of matching books")
-         * )
-         */
+        
         Flight::route('GET /books/search', function() {
             try {
                 $query = Flight::request()->query['q'] ?? '';
